@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Sklep Rybny – CRUD</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background-color: #ffffff;
+    }
+    h1 {
+      color: #000000;
+    }
+    form {
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      max-width: 600px;
+    }
+    input, button {
+      padding: 6px;
+      margin: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #d8a2e8;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #d8a2e8;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Sklep Rybny – CRUD</h1>
+
+
+  <form id="fishForm">
+    <input type="hidden" name="id" id="id">
+    <input type="text" id="nazwa" name="nazwa" placeholder="Nazwa ryby" required>
+    <input type="number" id="stan_magazynowy" name="stan_magazynowy" placeholder="Stan magazynowy" required>
+    <input type="number" step="0.01" id="cena" name="cena" placeholder="Cena" required>
+    <input type="text" id="wystepowanie" name="wystepowanie" placeholder="Występowanie" required>
+    <button type="submit" id="submitBtn">Dodaj rybę</button>
+    <button type="button" id="cancelEdit" style="display:none;">Anuluj edycję</button>
+  </form>
+
+
+  <table id="fishTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Nazwa</th>
+        <th>Stan magazynowy</th>
+        <th>Cena</th>
+        <th>Występowanie</th>
+        <th>Akcje</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const API = 'api.php';
+
+    // Wczytanie ryb z API
+    async function loadFish() {
+      const res = await fetch(API);
+      const data = await res.json();
+      const tbody = document.querySelector('#fishTable tbody');
+      tbody.innerHTML = data.map(f => `
+        <tr>
+          <td>${f.id}</td>
+          <td>${f.nazwa}</td>
+          <td>${f.stan_magazynowy}</td>
+          <td>${f.cena}</td>
+          <td>${f.wystepowanie}</td>
+          <td>
+            <button onclick="editFish(${f.id}, '${f.nazwa}', ${f.stan_magazynowy}, ${f.cena}, '${f.wystepowanie}')">Edytuj</button>
+            <button onclick="deleteFish(${f.id})">Usuń</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Dodawanie / Edycja ryby
+    document.getElementById('fishForm').addEventListener('submit', async e => {
+      e.preventDefault();
+
+      const id = document.getElementById('id').value;
+      const data = {
+        id: id || null,
+        nazwa: document.getElementById('nazwa').value,
+        stan_magazynowy: parseInt(document.getElementById('stan_magazynowy').value),
+        cena: parseFloat(document.getElementById('cena').value),
+        wystepowanie: document.getElementById('wystepowanie').value
+      };
+
+      const method = id ? 'PUT' : 'POST';
+
+      const res = await fetch(API, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (res.ok) {
+        alert(id ? "Zaktualizowano rybę" : "Dodano nową rybę");
+        resetForm();
+        loadFish();
+      } else {
+        alert("Błąd przy zapisie!");
+      }
+    });
+
+    // Edycja
+    function editFish(id, nazwa, stan, cena, wyst) {
+      document.getElementById('id').value = id;
+      document.getElementById('nazwa').value = nazwa;
+      document.getElementById('stan_magazynowy').value = stan;
+      document.getElementById('cena').value = cena;
+      document.getElementById('wystepowanie').value = wyst;
+
+      document.getElementById('submitBtn').textContent = "Zapisz zmiany";
+      document.getElementById('cancelEdit').style.display = "inline-block";
+    }
+
+    // Anuluj edycję
+    document.getElementById('cancelEdit').addEventListener('click', resetForm);
+
+    function resetForm() {
+      document.getElementById('fishForm').reset();
+      document.getElementById('id').value = "";
+      document.getElementById('submitBtn').textContent = "Dodaj rybę";
+      document.getElementById('cancelEdit').style.display = "none";
+    }
+
+    // Usuwanie ryby
+    async function deleteFish(id) {
+      if (confirm("Na pewno chcesz usunąć tę rybę?")) {
+        const res = await fetch(API, {
+          method: 'DELETE',
+          body: `id=${id}`
+        });
+        if (res.ok) {
+          alert("Rybę usunięto");
+          loadFish();
+        } else {
+          alert("Błąd przy usuwaniu!");
+        }
+      }
+    }
+
+    loadFish();
+  </script>
+
+</body>
+</html>
